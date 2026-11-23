@@ -63,7 +63,9 @@ app.get("/api/queue", publicLimiter, async (_req, res) => {
     .in("status", ["queued", "playing"])
     .order("votes", { ascending: false })
     .order("created_at", { ascending: true });
-  if (error) return res.status(500).json({ error: "Could not load the queue." });
+  if (error) {
+    console.error("Queue load failed:", error);
+    return res.status(500).json({ error: "Could not load the queue." });
   res.json({ songs: data || [] });
 });
 
