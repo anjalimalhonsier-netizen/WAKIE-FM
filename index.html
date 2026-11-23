@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#100b1d">
+  <meta name="description" content="Request songs and vote in the Wakie FM club queue.">
+  <title>Wakie FM</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <style>
+    :root{color-scheme:dark;--bg:#100b1d;--panel:#1b1230;--panel2:#24183d;--purple:#a78bfa;--pink:#e879f9;--text:#f8f5ff;--muted:#b9accd;--line:#3a2a55}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#2b1748 0%,var(--bg) 52%);color:var(--text);font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+    .wrap{max-width:680px;margin:auto;padding:24px 16px 48px}.hero{text-align:center;padding:18px 0 22px}.logo{width:64px;height:64px;border-radius:22px;margin:auto;background:linear-gradient(135deg,#8b5cf6,#db6cf0);display:grid;place-items:center;font-size:30px;box-shadow:0 10px 35px #a855f755}
+    h1{font-size:34px;letter-spacing:-1.5px;margin:13px 0 4px}.sub{color:var(--muted);margin:0}.pill{display:inline-block;border:1px solid #674c8b;color:#dfcaff;padding:6px 11px;border-radius:99px;font-size:12px;margin-top:12px}
+    .panel{background:#1b1230eF;border:1px solid var(--line);border-radius:20px;padding:18px;margin:14px 0;box-shadow:0 12px 40px #05020b55}.panel h2{font-size:18px;margin:0 0 14px}
+    label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}input{width:100%;background:#100b1d;border:1px solid #493665;color:white;padding:14px;border-radius:12px;font:inherit;outline:none}input:focus{border-color:var(--purple)}
+    button{border:0;border-radius:12px;padding:13px 16px;background:linear-gradient(100deg,#8b5cf6,#c65be5);color:white;font-weight:700;font-size:15px;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.full{width:100%;margin-top:14px}.ghost{background:#302044;border:1px solid #594271}.small{font-size:12px;padding:8px 11px}
+    .song{display:flex;gap:12px;align-items:center;padding:13px 0;border-top:1px solid var(--line)}.song:first-of-type{border-top:0}.num{width:34px;height:34px;flex:none;border-radius:11px;background:#302044;display:grid;place-items:center;color:#d8c2ff;font-weight:700}.songmain{min-width:0;flex:1}.songtitle{font-weight:700;overflow-wrap:anywhere}.meta{color:var(--muted);font-size:13px;margin-top:3px}.vote{display:flex;align-items:center;gap:7px;white-space:nowrap}.now{border-color:#8056aa;background:linear-gradient(120deg,#30204b,#1b1230)}.now .tag{color:#e9b8ff;font-size:11px;letter-spacing:1.4px;font-weight:800}.now .track{font-size:21px;font-weight:800;margin-top:7px}.now .meta{margin-top:5px}
+    .notice{font-size:13px;color:var(--muted);min-height:18px;margin-top:10px}.error{color:#fda4af}.success{color:#86efac}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}.hidden{display:none!important}.footer{text-align:center;color:#8e7fa5;font-size:12px;margin:24px 8px}.divider{height:1px;background:var(--line);margin:15px 0}
+    @media(min-width:560px){.wrap{padding-top:34px}.panel{padding:22px}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <div class="logo">♫</div><h1>Wakie FM</h1>
+    <p class="sub">Your club. Your music. Your queue.</p><span class="pill">PUBLIC SONG REQUESTS</span>
+  </header>
+
+  <section class="panel now" aria-live="polite">
+    <div class="tag">NOW PLAYING</div>
+    <div class="track" id="nowTitle">Waiting for the DJ…</div>
+    <div class="meta" id="nowArtist">The next track will appear here</div>
+  </section>
+
+  <section class="panel">
+    <h2>🎧 Request a song</h2>
+    <form id="requestForm">
+      <label for="title">Song title</label><input id="title" maxlength="120" placeholder="What do you want to hear?" required>
+      <label for="artist">Artist</label><input id="artist" maxlength="120" placeholder="Artist name" required>
+      <label for="requestedBy">Your name (optional)</label><input id="requestedBy" maxlength="40" placeholder="Nickname">
+      <button class="full" id="submitBtn">＋ Add to queue</button>
+    </form><div class="notice" id="requestNotice" role="status"></div>
+  </section>
+
+  <section class="panel">
+    <div class="row" style="align-items:center"><h2 style="margin:0;flex:1">🔥 Up next</h2><button class="ghost small" id="refreshBtn">Refresh</button></div>
+    <div id="queue"><p class="meta">Loading queue…</p></div>
+    <div class="notice" id="queueNotice" role="status"></div>
+  </section>
+
+  <section class="panel">
+    <div class="row" style="align-items:center"><h2 style="margin:0;flex:1">🎛 DJ controls</h2><button class="ghost small" id="djToggle">Unlock</button></div>
+    <div id="djPanel" class="hidden">
+      <label for="djPassword">DJ password</label><input id="djPassword" type="password" autocomplete="current-password" placeholder="Private DJ password">
+      <div class="row" style="margin-top:12px"><button class="ghost" id="finishBtn">Mark finished</button><button id="nextBtn">Play next ▶</button></div>
+      <button class="ghost full" id="skipBtn">Skip current track</button>
+      <div class="notice" id="djNotice" role="status"></div>
+      <p class="meta">The DJ plays the song in their authorised music player, then updates the queue here.</p>
+    </div>
+  </section>
+  <p class="footer">Wakie FM is an independent community request page and is not affiliated with Wakie.</p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const deviceKey = "wakiefm-device";
+let deviceId = localStorage.getItem(deviceKey);
+if (!deviceId) { deviceId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()); localStorage.setItem(deviceKey, deviceId); }
+let djUnlocked = false;
+function notice(id, message, kind="") { const el=$(id); el.textContent=message; el.className="notice "+kind; }
+async function api(url, options={}) {
+  const response = await fetch(url, {headers:{"Content-Type":"application/json",...(options.headers||{})},...options});
+  const body = await response.json().catch(()=>({}));
+  if (!response.ok) throw new Error(body.error || "Something went wrong.");
+  return body;
+}
+function djHeaders(){ return {"Authorization":"Bearer "+$("djPassword").value}; }
+async function refreshQueue(){
+  try{
+    const {songs=[]}=await api("/api/queue");
+    const playing=songs.find(s=>s.status==="playing");
+    $("nowTitle").textContent=playing?playing.title:"Waiting for the DJ…";
+    $("nowArtist").textContent=playing?playing.artist:"The next track will appear here";
+    const queued=songs.filter(s=>s.status==="queued");
+    $("queue").innerHTML="";
+    if(!queued.length){$("queue").innerHTML='<p class="meta">No requests yet. Be the first to add one!</p>';return;}
+    queued.forEach((song,index)=>{
+      const item=document.createElement("div");item.className="song";
+      const num=document.createElement("div");num.className="num";num.textContent=String(index+1);
+      const main=document.createElement("div");main.className="songmain";
+      const title=document.createElement("div");title.className="songtitle";title.textContent=song.title;
+      const meta=document.createElement("div");meta.className="meta";meta.textContent=song.artist+" · requested by "+song.requested_by;
+      main.append(title,meta);
+      const vote=document.createElement("div");vote.className="vote";
+      const btn=document.createElement("button");btn.className="ghost small";btn.textContent="▲ "+song.votes;btn.setAttribute("aria-label","Vote for "+song.title);
+      btn.addEventListener("click",async()=>{btn.disabled=true;try{const r=await api("/api/vote/"+song.id,{method:"POST",body:JSON.stringify({deviceId})});notice("queueNotice",r.message,"success");await refreshQueue();}catch(e){notice("queueNotice",e.message,"error");btn.disabled=false;}});
+      vote.append(btn);
+      if(djUnlocked){const remove=document.createElement("button");remove.className="ghost small";remove.textContent="×";remove.title="Remove request";remove.addEventListener("click",async()=>{try{await api("/api/dj/remove/"+song.id,{method:"POST",headers:djHeaders()});await refreshQueue();}catch(e){notice("djNotice",e.message,"error");}});vote.append(remove);}
+      item.append(num,main,vote);$("queue").append(item);
+    });
+  }catch(e){$("queue").textContent="Unable to load the queue. Please refresh.";notice("queueNotice",e.message,"error");}
+}
+$("requestForm").addEventListener("submit",async e=>{
+  e.preventDefault();$("submitBtn").disabled=true;notice("requestNotice","Sending request…");
+  try{
+    const r=await api("/api/requests",{method:"POST",body:JSON.stringify({title:$("title").value,artist:$("artist").value,requestedBy:$("requestedBy").value})});
+    notice("requestNotice",r.message,"success");$("requestForm").reset();await refreshQueue();
+  }catch(err){notice("requestNotice",err.message,"error");}
+  finally{$("submitBtn").disabled=false;}
+});
+$("refreshBtn").addEventListener("click",refreshQueue);
+$("djToggle").addEventListener("click",()=>{
+  $("djPanel").classList.toggle("hidden");
+  $("djToggle").textContent=$("djPanel").classList.contains("hidden")?"Unlock":"Hide";
+  djUnlocked=!$("djPanel").classList.contains("hidden");
+  refreshQueue();
+});
+async function djAction(path){
+  try{const r=await api(path,{method:"POST",headers:djHeaders()});notice("djNotice",r.message,"success");await refreshQueue();}
+  catch(e){notice("djNotice",e.message,"error");}
+}
+$("nextBtn").addEventListener("click",()=>djAction("/api/dj/next"));
+$("finishBtn").addEventListener("click",()=>djAction("/api/dj/finish"));
+$("skipBtn").addEventListener("click",()=>djAction("/api/dj/skip"));
+refreshQueue();
+setInterval(refreshQueue,10000);
+</script>
+</body>
+</html>
