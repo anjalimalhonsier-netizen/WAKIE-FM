@@ -66,6 +66,7 @@ app.get("/api/queue", publicLimiter, async (_req, res) => {
   if (error) {
     console.error("Queue load failed:", error);
     return res.status(500).json({ error: "Could not load the queue." });
+  }
   res.json({ songs: data || [] });
 });
 
