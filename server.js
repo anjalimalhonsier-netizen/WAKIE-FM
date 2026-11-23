@@ -124,6 +124,53 @@ app.post("/api/dj/remove/:id", requireDJ, async (req, res) => {
   res.json({ message: "Request removed." });
 });
 
+app.get("/api/playback", publicLimiter, async (_req, res) => {
+  const { data, error } = await supabase
+    .from("playback_state")
+    .select("video_id,status,position_seconds,updated_at")
+    .eq("id", 1)
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: "Could not load playback state." });
+  }
+
+  res.json({ playback: data });
+});
+
+app.post("/api/dj/playback", requireDJ, async (req, res) => {
+  const videoId = String(req.body.video_id || "").trim();
+  const status = String(req.body.status || "stopped");
+  const position = Number(req.body.position_seconds || 0);
+
+  if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+    return res.status(400).json({ error: "Invalid YouTube video ID." });
+  }
+
+  if (!["playing", "paused", "stopped"].includes(status) ||
+      !Number.isFinite(position) || position < 0) {
+    return res.status(400).json({ error: "Invalid playback details." });
+  }
+
+  const { data, error } = await supabase
+    .from("playback_state")
+    .upsert({
+      id: 1,
+      video_id: videoId,
+      status,
+      position_seconds: position,
+      updated_at: new Date().toISOString()
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: "Could not update playback." });
+  }
+
+  res.json({ playback: data, message: "Playback updated." });
+});
+
 app.use((req, res, next) => {
   if (req.method === "GET" && !req.path.startsWith("/api/")) {
     return res.sendFile(path.join(__dirname, "public", "index.html"));
